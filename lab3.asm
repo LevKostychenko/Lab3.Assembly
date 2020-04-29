@@ -4,7 +4,8 @@
     start_msg db 10, 13, "Enter digit: ", 10, 13, '$'        
     end_msg db 10, 13, "Count of digits in interval: ", 10, 13, '$'
     enter_lower_border_msg db 10, 13, "Eneter lower border: ", 10, 13, '$'
-    enter_upper_border_msg db 10, 13, "Eneter upper border: ", 10, 13, '$'
+    enter_upper_border_msg db 10, 13, "Eneter upper border: ", 10, 13, '$'    
+    owerflow_msg db 10, 13, "Owerflow!", 10, 13, '$'
     array dw ARRAY_SIZE dup(?)
     digit db 8
           db ?
@@ -117,18 +118,28 @@
                 mov bl, byte ptr [di]
                 sub bl, '0'
                 add ax, bx
+                jo show_owerflow_borders
                 inc di
                 loop converting_borders
-            pop di
+            pop di                   
             check_negative_borders:
                 xor bx, bx
                 mov bl, '-'
                 cmp bl, byte ptr[di]               
                 je make_negative_borders
                 jmp make_digit_borders 
-            make_negative_borders:
+            make_negative_borders:               
                 neg ax
-                jmp make_digit_borders
+                cmp ax, 8000h
+                je make_digit_borders                
+                jo show_owerflow_borders   ; owerflow
+                jmp make_digit_borders 
+                
+            show_owerflow_borders:
+                mov dx, offset owerflow_msg
+                mov ah, 09h
+                int 21h            
+                jmp _exit                
             make_digit_borders:
         ret 
     atoi_borders endp       
@@ -162,7 +173,8 @@
                 mul bx 
                 mov bl, byte ptr [di]
                 sub bl, '0'
-                add ax, bx
+                add ax, bx  
+                jo show_owerflow_borders
                 inc di
                 loop converting
             pop di
@@ -172,9 +184,17 @@
                 cmp bl, byte ptr[di]               
                 je make_negative
                 jmp make_digit 
-            make_negative:
+            make_negative:              
                 neg ax
-                jmp make_digit                      
+                cmp ax, 8000h
+                je make_digit                
+                jo show_owerflow               
+                jmp make_digit          
+                show_owerflow:
+                mov dx, offset owerflow_msg
+                mov ah, 09h
+                int 21h            
+                jmp _exit            
             make_digit:
                 mov word ptr[si], ax  
         popa
