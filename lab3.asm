@@ -114,7 +114,8 @@
                 xor ax, ax              
             converting_borders:
                 mov bl, 10
-                mul bx 
+                mul bx  
+                jo show_owerflow_borders
                 mov bl, byte ptr [di]
                 sub bl, '0'
                 add ax, bx               
@@ -172,7 +173,8 @@
                 xor ax, ax              
             converting:
                 mov bl, 10
-                mul bx 
+                mul bx  
+                jo show_owerflow
                 mov bl, byte ptr [di]
                 sub bl, '0'
                 add ax, bx  
