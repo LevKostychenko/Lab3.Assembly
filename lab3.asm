@@ -117,9 +117,7 @@
                 mul bx 
                 mov bl, byte ptr [di]
                 sub bl, '0'
-                add ax, bx
-                jo show_owerflow_borders 
-                jc show_owerflow_borders
+                add ax, bx               
                 inc di
                 loop converting_borders
             pop di                   
@@ -143,6 +141,8 @@
                 int 21h            
                 jmp _exit                
             make_digit_borders:
+            jo show_owerflow_borders 
+            jc show_owerflow_borders
         ret 
     atoi_borders endp       
          
@@ -176,8 +176,6 @@
                 mov bl, byte ptr [di]
                 sub bl, '0'
                 add ax, bx  
-                jo show_owerflow
-                jc show_owerflow
                 inc di
                 loop converting
             pop di
@@ -199,7 +197,9 @@
                 mov ah, 09h
                 int 21h            
                 jmp _exit            
-            make_digit:
+            make_digit:          
+                jo show_owerflow_borders 
+                jc show_owerflow_borders
                 mov word ptr[si], ax  
         popa
         ret
