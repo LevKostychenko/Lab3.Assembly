@@ -118,7 +118,8 @@
                 mov bl, byte ptr [di]
                 sub bl, '0'
                 add ax, bx
-                jo show_owerflow_borders
+                jo show_owerflow_borders 
+                jc show_owerflow_borders
                 inc di
                 loop converting_borders
             pop di                   
@@ -132,7 +133,8 @@
                 neg ax
                 cmp ax, 8000h
                 je make_digit_borders                
-                jo show_owerflow_borders   ; owerflow
+                jo show_owerflow_borders
+                jc show_owerflow_borders  ; owerflow
                 jmp make_digit_borders 
                 
             show_owerflow_borders:
@@ -174,7 +176,8 @@
                 mov bl, byte ptr [di]
                 sub bl, '0'
                 add ax, bx  
-                jo show_owerflow_borders
+                jo show_owerflow
+                jc show_owerflow
                 inc di
                 loop converting
             pop di
@@ -188,7 +191,8 @@
                 neg ax
                 cmp ax, 8000h
                 je make_digit                
-                jo show_owerflow               
+                jo show_owerflow
+                jc show_owerflow               
                 jmp make_digit          
                 show_owerflow:
                 mov dx, offset owerflow_msg
