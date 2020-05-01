@@ -1,6 +1,7 @@
 .model small
 .stack 100h
-.data                                                  
+.data             
+    input_exception_msg db 10, 13, "Incorrect input, try again!", 10, 13, '$'                                     
     start_msg db 10, 13, "Enter digit: ", 10, 13, '$'        
     end_msg db 10, 13, "Count of digits in interval: ", 10, 13, '$'
     enter_lower_border_msg db 10, 13, "Eneter lower border: ", 10, 13, '$'
@@ -41,25 +42,36 @@
                 cmp al, bl
                 je is_negative               
                 cmp cx, digit_symb_limit
-                ja _exit            ;edit
+                ja show_exception_msg            
                 jmp start_check                  
             is_negative:
                 inc di
                 dec cx
                 cmp cx, digit_symb_limit
-                ja _exit
+                ja show_exception_msg
                 jmp start_check   
             start_check:
                 xor bx, bx
                 mov bl, byte ptr[di]        
                 mov al, '0'
                 cmp al, bl
-                ja _exit    ; edit
+                ja show_exception_msg    
                 mov al, '9'
                 cmp al, bl
-                jb _exit
+                jb show_exception_msg
                 inc di
-                loop start_check                 
+                loop start_check
+                jmp end_check
+            show_exception_msg: 
+                mov dx, offset input_exception_msg
+                    mov ah, 09h
+                    int 21h
+                xor cx, cx
+                xor ax, ax, 
+                xor dx, dx
+                xor bx, bx
+                jmp print_start_msg                  
+            end_check:                     
         popa
         ret
     get_digit endp   
@@ -69,13 +81,16 @@
             mov dx, offset enter_lower_border_msg
             mov ah, 09h
             int 21h
+            start_get_low_border:
+            xor si, si
         call get_digit    
         call atoi_borders
+                cmp si, 1
+                je start_get_low_border 
                 xor dx, dx               
                 xor bx, bx                        
         ret              
-    get_low_border endp
-     
+    get_low_border endp  
          
     get_upper_border proc
         push ax
@@ -84,16 +99,23 @@
             mov dx, offset enter_upper_border_msg
             mov ah, 09h
             int 21h
+            start_get_up_border:
+            xor si, si
         call get_digit
         call atoi_borders
-        mov bx, ax        
+            cmp si, 1
+            je start_get_up_border
+            mov bx, ax        
             xor dx, dx 
             xor ax, ax           
         pop ax
         ret
     get_upper_border endp        
      
-    atoi_borders proc       
+    atoi_borders proc                  
+            push dx
+            push cx                 
+            start_atoi:
             mov di, offset digit + 2
             push di
             xor cx, cx
@@ -118,7 +140,9 @@
                 jo show_owerflow_borders
                 mov bl, byte ptr [di]
                 sub bl, '0'
-                add ax, bx               
+                add ax, bx
+                js remember_sf
+                continue:               
                 inc di
                 loop converting_borders
             pop di                   
@@ -127,85 +151,35 @@
                 mov bl, '-'
                 cmp bl, byte ptr[di]               
                 je make_negative_borders
+                cmp dl, 1
+                je show_owerflow_borders 
                 jmp make_digit_borders 
-            make_negative_borders:               
+            make_negative_borders:                              
                 neg ax
-                cmp ax, 8000h
-                je make_digit_borders                
-                jo show_owerflow_borders
-                jc show_owerflow_borders  ; owerflow
+                cmp dl, 1
+                je check_for_8000h
                 jmp make_digit_borders 
-                
+            check_for_8000h:        
+                cmp ax, 8000h
+                je make_digit_borders               
+                jmp show_owerflow_borders 
+            remember_sf:
+                mov dl, 1
+                jmp continue    
             show_owerflow_borders:
                 mov dx, offset owerflow_msg
                 mov ah, 09h
-                int 21h            
-                jmp _exit                
+                int 21h  
+                xor cx, cx
+                xor ax, ax, 
+                xor dx, dx
+                xor bx, bx          
+                mov si, 1
             make_digit_borders:
-            jo show_owerflow_borders 
-            jc show_owerflow_borders
+        pop cx ; !!!
+        pop dx ; !!!                                
         ret 
-    atoi_borders endp       
-         
-    atoi proc
-        pop bp
-        pop si
-        push bp
-        pusha
-        convert_to_int:
-            mov di, offset digit + 2
-            push di
-            xor cx, cx
-            xor dx, dx
-            xor ax, ax
-            xor bx, bx
-            mov cl, byte ptr[digit + 1]
-            jmp check_minus
-            check_minus:
-                mov al, '-'
-                cmp al, byte ptr[di]
-                je skip_minus
-                xor ax, ax
-                jmp converting           
-            skip_minus:
-                inc di
-                dec cx
-                xor ax, ax              
-            converting:
-                mov bl, 10
-                mul bx  
-                jo show_owerflow
-                mov bl, byte ptr [di]
-                sub bl, '0'
-                add ax, bx  
-                inc di
-                loop converting
-            pop di
-            check_negative:
-                xor bx, bx
-                mov bl, '-'
-                cmp bl, byte ptr[di]               
-                je make_negative
-                jmp make_digit 
-            make_negative:              
-                neg ax
-                cmp ax, 8000h
-                je make_digit                
-                jo show_owerflow
-                jc show_owerflow               
-                jmp make_digit          
-                show_owerflow:
-                mov dx, offset owerflow_msg
-                mov ah, 09h
-                int 21h            
-                jmp _exit            
-            make_digit:          
-                jo show_owerflow_borders 
-                jc show_owerflow_borders
-                mov word ptr[si], ax  
-        popa
-        ret
-    atoi endp            
+    atoi_borders endp        
     
     get_count_of_digits proc                
         xor cx, cx
@@ -284,6 +258,8 @@
     mov es, ax                                 
     call get_low_border     ; ax
     call get_upper_border   ; bx
+    push ax      
+    push bx 
     mov di, offset max_count_digit_symbol
     mov [di+6], '$'           
     xor dx, dx
@@ -291,11 +267,17 @@
     mov dx, offset array
     mov cx, ARRAY_SIZE   
     initializate_array:
-        call get_digit
-        push dx
-        call atoi
+        call get_digit   
+        xor si, si              
+        call atoi_borders
+        cmp si, 1 
+        je jmp initializate_array
+        mov si, dx
+        mov word ptr[si], ax
         add dx, 2
-        loop initializate_array                      
+        loop initializate_array
+    pop bx
+    pop ax                          
     call get_count_of_digits      ; dx
     call itoa
     call print_number_of_digits 
