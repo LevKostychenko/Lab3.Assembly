@@ -10,7 +10,8 @@ MOVING_UP equ 0FF00h
 MOVING_DOWN equ 0100h 
 MOVING_RIGHT equ 0001h
 MOVING_LEFT equ 0FFFFh
-up_boder_sign db 0C4h
+up_boder_sign db 0C4h 
+start_pos dw 0
 count dw 00h
 count_digit db 7 dup('0') 
 .stack 100h
@@ -161,7 +162,7 @@ chech_for_game_over endp
 itoa proc
     pusha 
     mov di, offset count_digit
-    mov [di+6], '$'
+    ;mov [di+6], '$'
     add di, 5        
     xor bx, bx
     mov ax, word ptr [count]   
@@ -181,14 +182,19 @@ itoa proc
 itoa endp    
 
 set_count proc
-    call itoa
-    mov ah, 02h
-    mov dh, 00h
-    mov dl, 70
-    int 10h   
-    mov ah, 09h
-    mov dx, offset count_digit
-    int 21h  
+    pusha         
+    call itoa 
+    mov bx, 148   
+    mov cx, 6 
+    mov di, offset count_digit    
+    xor di, di
+    outp_count:             
+        mov al, byte ptr[count_digit + di]   
+        mov byte ptr es:[bx], al
+        inc di
+        add bx, 2
+    loop outp_count      
+    popa
     ret
 set_count endp        
     
@@ -198,13 +204,7 @@ increment_count proc
     inc ax
     mov word ptr[count], ax
     call itoa
-    mov ah, 02h
-    mov dh, 00h
-    mov dl, 70
-    int 10h   
-    mov ah, 09h
-    mov dx, offset count_digit
-    int 21h    
+    call set_count 
     popa 
     ret
 increment_count endp    
@@ -269,6 +269,7 @@ paint_game_area endp
 start:
     mov ax, @data
     mov ds, ax
+    mov ax, 0B800h 
     mov es, ax
 
 	mov ax, 0003h
