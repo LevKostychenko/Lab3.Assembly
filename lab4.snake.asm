@@ -81,10 +81,10 @@ spawn_food proc
     check_for_random_number:
         inc bl
         cmp bx, 1
-        jg continue_chaeck               
+        jg continue_check               
         inc bx                
         jmp check_for_random_number
-        continue_chaeck:
+        continue_check:
 	    cmp bx, 78       
 	    jng write_coordinates
 	    shr bl, 1     
@@ -162,7 +162,6 @@ chech_for_game_over endp
 itoa proc
     pusha 
     mov di, offset count_digit
-    ;mov [di+6], '$'
     add di, 5        
     xor bx, bx
     mov ax, word ptr [count]   
@@ -211,7 +210,8 @@ increment_count endp
 
 paint_game_area proc    
     mov ah, 02h
-    mov dh, 01h
+    mov dh, 01h 
+    mov dl, 0h
     int 10h
     paint_upper_border:
         mov ax, 09C4h        
@@ -296,7 +296,7 @@ start:
         call delay  
         call key_press
         xor bh, bh
-	    mov ax, [snake+si]
+	    mov ax, word ptr [snake+si]
 	    add ax, cx     
 	    add si, 2
 	    mov dx, ax			
@@ -306,7 +306,7 @@ start:
 	    mov ax, 0800h   ; read symbol in head
 	    int 10h    
 	    
-	    call chech_for_game_over
+	    call chech_for_game_over  
 	    mov dh, al
 	        
 	    mov ah, 09h
